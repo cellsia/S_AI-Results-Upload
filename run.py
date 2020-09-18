@@ -14,8 +14,8 @@ def _generate_rectangles(detections):
     
     rectangles = []
 
-    for detection in detections:
-        rectangles.append(box(detection[0],detection[1],detection[2],detection[3]))
+    for detection in detections['rectangles']:
+        rectangles.append(box(detection['x0'],detection['y0'],detection['x1'],detection['y1']))
     
     return rectangles
 
@@ -32,7 +32,7 @@ def run(cyto_job, parameters):
     job.update(progress=0, status=Job.RUNNING, statusComment=f"Converting annotations from project {project_id}")
 
     # Load annotations from provided JSON
-    detections = json.load(json_string)
+    detections = json.loads(json_string)
     rectangles = _generate_rectangles(detections)
 
     # Upload annotations to server
