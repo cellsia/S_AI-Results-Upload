@@ -5,7 +5,7 @@
       "image": "fpaulano/s_ai-results-upload",
       "type": "singularity"
     },
-    "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY]",
+    "command-line": "[CYTOMINE_HOST] [CYTOMINE_PUBLIC_KEY] [CYTOMINE_PRIVATE_KEY] [CYTOMINE_ID_PROJECT] [CYTOMINE_ID_SOFTWARE] [CYTOMINE_IMAGE] [CYTOMINE_ID_TERM] [DETECTIONS]",
     "inputs": [
       {
         "id": "cytomine_host",
@@ -77,7 +77,7 @@
 	    "uri-sort-attribute": "name"
       },
       {
-        "id": "annotations",
+        "id": "detections",
         "value-key": "[@ID]",
         "command-line-flag": "--@id",
         "name": "Detections",
