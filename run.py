@@ -25,8 +25,8 @@ def run(cyto_job, parameters):
 
     job = cyto_job.job
     project_id = cyto_job.project
-    image = parameters.image
-    term = parameters.term
+    image = parameters.cytomine_image
+    term = parameters.cytomine_id_term
     json_string = parameters.detections
 
     job.update(progress=0, status=Job.RUNNING, statusComment=f"Converting annotations from project {project_id}")
