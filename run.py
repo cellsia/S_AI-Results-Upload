@@ -7,7 +7,7 @@ import cytomine
 from cytomine.models import AnnotationCollection, Annotation, Job
 from shapely.geometry import box
 
-__version__ = "0.0.9"
+__version__ = "0.0.13"
 
 
 def _generate_rectangles(detections):
@@ -15,6 +15,7 @@ def _generate_rectangles(detections):
     rectangles = []
 
     for detection in detections['rectangles']:
+        logging.info(f"X0 {detection['x0']}  Y0 {detection['y0']}  X1 {detection['x1']}  Y1{detection['y1']}")
         rectangles.append(box(detection['x0'],detection['y0'],detection['x1'],detection['y1']))
     
     return rectangles
@@ -43,7 +44,7 @@ def run(cyto_job, parameters):
     # Upload annotations to server
     new_annotations = AnnotationCollection()
     for rectangle in rectangles:
-        new_annotations.append(Annotation(rectangle.wkt, image, term, project.id))
+        new_annotations.append(Annotation(location=rectangle.wkt, id_image=image, id_term=[term]))
     new_annotations.save()
 
     job.update(progress=100, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
