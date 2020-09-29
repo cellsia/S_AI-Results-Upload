@@ -29,13 +29,16 @@ def run(cyto_job, parameters):
     term = parameters.cytomine_id_term
     json_string = parameters.detections
 
-    job.update(progress=0, status=Job.RUNNING, statusComment=f"Converting annotations from project {project_id}")
+    job.update(progress=0, status=Job.RUNNING, statusComment=f"Parsing detections {json_string}")
 
     logging.info("JSON: %s", json_string)
+    print(json_string)
 
     # Load annotations from provided JSON
     detections = json.loads(json_string)
     rectangles = _generate_rectangles(detections)
+
+    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image}")
 
     # Upload annotations to server
     new_annotations = AnnotationCollection()
