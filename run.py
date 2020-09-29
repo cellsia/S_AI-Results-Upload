@@ -1,6 +1,6 @@
 import logging
 import sys
-import json
+import yaml
 
 import cytomine
 
@@ -28,7 +28,7 @@ def run(cyto_job, parameters):
     project = cyto_job.project
     image = parameters.cytomine_image
     term = parameters.cytomine_id_term
-    json_string = parameters.detections.replace('"','\\"')
+    json_string = parameters.detections
 
     job.update(progress=0, status=Job.RUNNING, statusComment=f"Parsing detections {json_string}")
 
@@ -36,7 +36,7 @@ def run(cyto_job, parameters):
     print(json_string)
 
     # Load annotations from provided JSON
-    detections = json.loads(json_string)
+    detections = yaml.load(json_string)
     rectangles = _generate_rectangles(detections)
 
     job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
