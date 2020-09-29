@@ -44,7 +44,7 @@ def run(cyto_job, parameters):
     new_annotations = AnnotationCollection()
     for rectangle in rectangles:
         new_annotations.append(Annotation(rectangle.wkt, image, term, project_id))
-    new_annotations.save(chunk = None)
+    new_annotations.save()
 
     job.update(progress=100, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
 
