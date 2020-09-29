@@ -28,7 +28,7 @@ def run(cyto_job, parameters):
     project = cyto_job.project
     image = parameters.cytomine_image
     term = parameters.cytomine_id_term
-    json_string = parameters.detections
+    json_string = parameters.detections.replace('"','\\"')
 
     job.update(progress=0, status=Job.RUNNING, statusComment=f"Parsing detections {json_string}")
 
