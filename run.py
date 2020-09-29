@@ -31,6 +31,8 @@ def run(cyto_job, parameters):
 
     job.update(progress=0, status=Job.RUNNING, statusComment=f"Converting annotations from project {project_id}")
 
+    logging.info("JSON: %s", json_string)
+
     # Load annotations from provided JSON
     detections = json.loads(json_string)
     rectangles = _generate_rectangles(detections)
