@@ -24,7 +24,7 @@ def run(cyto_job, parameters):
     logging.info("----- IA results uploader v%s -----", __version__)
 
     job = cyto_job.job
-    project_id = cyto_job.project
+    project = cyto_job.project
     image = parameters.cytomine_image
     term = parameters.cytomine_id_term
     json_string = parameters.detections
@@ -38,12 +38,12 @@ def run(cyto_job, parameters):
     detections = json.loads(json_string)
     rectangles = _generate_rectangles(detections)
 
-    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project_id}) with term {term}")
+    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
 
     # Upload annotations to server
     new_annotations = AnnotationCollection()
     for rectangle in rectangles:
-        new_annotations.append(Annotation(rectangle.wkt, image, term, project_id))
+        new_annotations.append(Annotation(rectangle.wkt, image, term, project.id))
     new_annotations.save()
 
     job.update(progress=100, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
