@@ -38,12 +38,12 @@ def run(cyto_job, parameters):
     detections = json.loads(json_string)
     rectangles = _generate_rectangles(detections)
 
-    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} with term {term}")
+    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project_id}) with term {term}")
 
     # Upload annotations to server
     new_annotations = AnnotationCollection()
     for rectangle in rectangles:
-        new_annotations.append(Annotation(rectangle.wkt, image, term.id, project_id))
+        new_annotations.append(Annotation(rectangle.wkt, image, term, project_id))
     new_annotations.save(chunk = None)
 
     job.update(progress=100, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
