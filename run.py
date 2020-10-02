@@ -1,10 +1,11 @@
 import logging
 import sys
-import yaml
+import json
 
 import cytomine
 
-from cytomine.models import AnnotationCollection, Annotation, Job
+from cytomine.models import AnnotationCollection, Annotation, Job, JobData
+from cytomine.models.software import JobDataCollection
 from shapely.geometry import box
 
 __version__ = "0.0.13"
@@ -28,15 +29,24 @@ def run(cyto_job, parameters):
     project = cyto_job.project
     image = parameters.cytomine_image
     term = parameters.cytomine_id_term
-    json_string = parameters.detections
 
-    job.update(progress=0, status=Job.RUNNING, statusComment=f"Parsing detections {json_string}")
+    job_data_collection = JobDataCollection().fetch_with_filter('job', job.id)
+    job_data = next((j for j in job_data_collection if j.key == 'detections'), None)
+    if not job_data:
+        job.update(progress=100, status=Job.FAILED, statusComment="Detections cannot be found")
+        sys.exit()
 
-    logging.info("JSON: %s", json_string)
-    print(json_string)
+    filename = 'detections-' + str(job.id) + '.json'
+    if not JobData().fetch(job_data.id).download(filename):
+        job.update(progress=100, status=Job.FAILED, statusComment="Detections cannot be found")
+        sys.exit()
+
+    with open(filename) as json_file:
+        detections = json.load(json_file)
+
+    logging.info(f"JSON: {detections}")
 
     # Load annotations from provided JSON
-    detections = yaml.load(json_string)
     rectangles = _generate_rectangles(detections)
 
     job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
