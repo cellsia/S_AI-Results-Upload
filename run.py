@@ -57,7 +57,7 @@ def run(cyto_job, parameters):
     for rectangle in rectangles:
         new_annotations.append(Annotation(location=rectangle.wkt, id_image=image, id_term=[term]))
         progress += delta
-        job.update(progress=progress, status=Job.RUNNING)
+        job.update(progress=int(progress), status=Job.RUNNING)
 
     new_annotations.save()
     progress = 100
