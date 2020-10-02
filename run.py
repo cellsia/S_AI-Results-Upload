@@ -8,7 +8,7 @@ from cytomine.models import AnnotationCollection, Annotation, Job, JobData
 from cytomine.models.software import JobDataCollection
 from shapely.geometry import box
 
-__version__ = "0.0.13"
+__version__ = "1.0.0"
 
 
 def _generate_rectangles(detections):
@@ -44,20 +44,24 @@ def run(cyto_job, parameters):
     with open(filename) as json_file:
         detections = json.load(json_file)
 
-    logging.info(f"JSON: {detections}")
 
     # Load annotations from provided JSON
     rectangles = _generate_rectangles(detections)
 
-    job.update(progress=10, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
+    progress = 10
+    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
 
     # Upload annotations to server
+    delta = 85 / len(rectangles)
     new_annotations = AnnotationCollection()
     for rectangle in rectangles:
         new_annotations.append(Annotation(location=rectangle.wkt, id_image=image, id_term=[term]))
-    new_annotations.save()
+        progress += delta
+        job.update(progress=progress, status=Job.RUNNING)
 
-    job.update(progress=100, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
+    new_annotations.save()
+    progress = 100
+    job.update(progress=progress, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
 
 
 if __name__ == "__main__":
