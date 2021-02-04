@@ -4,31 +4,96 @@ import json
 
 import cytomine
 
-from cytomine.models import AnnotationCollection, Annotation, Job, JobData
+from cytomine.models import AnnotationCollection, Annotation, Job, JobData, AnnotationTerm
 from cytomine.models.software import JobDataCollection
-from shapely.geometry import box
-
-__version__ = "1.0.0"
+from shapely.geometry import box, Point
 
 
-def _generate_rectangles(detections):
+__version__ = "1.1.0"
+
+
+def _generate_rectangles(detections: dict) -> list: 
     
     rectangles = []
 
     for detection in detections['rectangles']:
-        logging.info(f"X0 {detection['x0']}  Y0 {detection['y0']}  X1 {detection['x1']}  Y1{detection['y1']}")
+        #logging.info(f"X0 {detection['x0']}  Y0 {detection['y0']}  X1 {detection['x1']}  Y1 {detection['y1']}")
         rectangles.append(box(detection['x0'],detection['y0'],detection['x1'],detection['y1']))
     
     return rectangles
+
+
+def _generate_points(detections: dict, tag_name: str) -> list:
+
+    points = []
+
+    for detection in detections[tag_name]:
+        logging.info(f"X0 {detection['x0']}  Y0 {detection['y0']}")
+        points.append(Point(detection['x0'],detection['y0']))
+
+    return points
+
+
+def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> None:
+
+    progress = 10
+    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type rectangles to image {image_id} with terms {term}")
+
+    rectangles = _generate_rectangles(detections)
+
+    # Upload annotations to server
+    delta = 85 / len(rectangles)
+    annotations = AnnotationCollection()
+    for rectangle in rectangles:
+        annotations.append(Annotation(location=rectangle.wkt, id_image=image_id, id_terms=[term]))
+        progress += delta
+        job.update(progress=int(progress), status=Job.RUNNING)
+
+    annotations.save()
+    progress = 100
+    job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
+
+
+def _load_two_class_points(job: Job, image_id: str, terms: list, detections: dict) -> None:
+
+    progress = 10
+    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type two-class-points to image {image_id} with terms {terms[0]}")
+
+    pointsA = _generate_points(detections, 'points-a')
+
+    # Upload annotations to server
+    delta = 42 / len(pointsA)
+    annotations = AnnotationCollection()
+    for point in pointsA:
+        annotations.append(Annotation(location=point.wkt, id_image=image_id, id_terms=[terms[0]]))
+        progress += delta
+        job.update(progress=int(progress), status=Job.RUNNING)
+
+    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type two-class-points to image {image_id} with terms {terms[1]}")
+
+    pointsB = _generate_points(detections, 'points-b')
+    
+    delta = 42 / len(pointsB)
+    for point in pointsB:
+        annotations.append(Annotation(location=point.wkt, id_image=image_id, id_terms=[terms[1]]))
+        progress += delta
+        job.update(progress=int(progress), status=Job.RUNNING)
+
+    annotations.save()
+    progress = 100
+    job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
 
 
 def run(cyto_job, parameters):
     logging.info("----- IA results uploader v%s -----", __version__)
 
     job = cyto_job.job
-    project = cyto_job.project
+    #project = cyto_job.project
     image = parameters.cytomine_image
-    term = parameters.cytomine_id_term
+    terms_str = parameters.cytomine_id_term
+    terms = terms_str.replace(' ', '').strip('[] ').split(',')
+    terms = list(map(int, terms))
+    detections_type = parameters.type_of_detections
 
     job_data_collection = JobDataCollection().fetch_with_filter('job', job.id)
     job_data = next((j for j in job_data_collection if j.key == 'detections'), None)
@@ -44,24 +109,10 @@ def run(cyto_job, parameters):
     with open(filename) as json_file:
         detections = json.load(json_file)
 
-
-    # Load annotations from provided JSON
-    rectangles = _generate_rectangles(detections)
-
-    progress = 10
-    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections to image {image} (Project: {project.id}) with term {term}")
-
-    # Upload annotations to server
-    delta = 85 / len(rectangles)
-    new_annotations = AnnotationCollection()
-    for rectangle in rectangles:
-        new_annotations.append(Annotation(location=rectangle.wkt, id_image=image, id_term=[term]))
-        progress += delta
-        job.update(progress=int(progress), status=Job.RUNNING)
-
-    new_annotations.save()
-    progress = 100
-    job.update(progress=progress, status=Job.TERMINATED, statusComment="All annotations have been uploaded")
+    if detections_type == 'rectangles':
+        _load_rectangles(job, image, terms[0], detections)
+    elif detections_type == 'two-class-points':
+        _load_two_class_points(job, image, terms, detections)
 
 
 if __name__ == "__main__":
