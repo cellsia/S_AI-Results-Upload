@@ -6,10 +6,10 @@ import cytomine
 
 from cytomine.models import AnnotationCollection, Annotation, Job, JobData, AnnotationTerm
 from cytomine.models.software import JobDataCollection
-from shapely.geometry import box, Point
+from shapely.geometry import box, Point, MultiPoint
 
 
-__version__ = "1.1.0"
+__version__ = "1.1.2"
 
 
 def _generate_rectangles(detections: dict) -> list: 
@@ -23,15 +23,13 @@ def _generate_rectangles(detections: dict) -> list:
     return rectangles
 
 
-def _generate_points(detections: dict, tag_name: str) -> list:
+def _generate_multipoints(detections: list) -> MultiPoint:
 
     points = []
+    for detection in detections:
+        points.append((detection['x'], detection['y']))
 
-    for detection in detections[tag_name]:
-        logging.info(f"X0 {detection['x0']}  Y0 {detection['y0']}")
-        points.append(Point(detection['x0'],detection['y0']))
-
-    return points
+    return MultiPoint(points=points)
 
 
 def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> None:
@@ -54,31 +52,21 @@ def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> No
     job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
 
 
-def _load_two_class_points(job: Job, image_id: str, terms: list, detections: dict) -> None:
+def _load_multi_class_points(job: Job, image_id: str, terms: list, detections: dict) -> None:
 
     progress = 10
     job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type two-class-points to image {image_id} with terms {terms[0]}")
 
-    pointsA = _generate_points(detections, 'points-a')
-
-    # Upload annotations to server
-    delta = 42 / len(pointsA)
     annotations = AnnotationCollection()
-    for point in pointsA:
-        annotations.append(Annotation(location=point.wkt, id_image=image_id, id_terms=[terms[0]]))
-        progress += delta
-        job.update(progress=int(progress), status=Job.RUNNING)
-
-    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type two-class-points to image {image_id} with terms {terms[1]}")
-
-    pointsB = _generate_points(detections, 'points-b')
+    delta = 85 / len(detections.values())
     
-    delta = 42 / len(pointsB)
-    for point in pointsB:
-        annotations.append(Annotation(location=point.wkt, id_image=image_id, id_terms=[terms[1]]))
+    for idx, points in enumerate(detections.values()):
+
+        multipoint = _generate_multipoints(points)
+        annotations.append(Annotation(location=multipoint.wkt, id_image=image_id, id_terms=[terms[idx]]))
         progress += delta
         job.update(progress=int(progress), status=Job.RUNNING)
-
+    
     annotations.save()
     progress = 100
     job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
@@ -111,8 +99,8 @@ def run(cyto_job, parameters):
 
     if detections_type == 'rectangles':
         _load_rectangles(job, image, terms[0], detections)
-    elif detections_type == 'two-class-points':
-        _load_two_class_points(job, image, terms, detections)
+    elif detections_type == 'multi-class-points':
+        _load_multi_class_points(job, image, terms, detections)
 
 
 if __name__ == "__main__":
