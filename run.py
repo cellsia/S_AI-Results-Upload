@@ -9,7 +9,7 @@ from cytomine.models.software import JobDataCollection
 from shapely.geometry import box, Point, MultiPoint
 
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 
 def _generate_rectangles(detections: dict) -> list: 
@@ -65,9 +65,10 @@ def run(cyto_job, parameters):
     #project = cyto_job.project
     image = parameters.cytomine_image
     terms_str = parameters.cytomine_id_term
-    terms = terms_str.replace(' ', '').strip('[] ').split(',')
-    logging.info(f"Associated terms: {terms_str}. {terms}")
-    if terms:
+    if terms_str == "[]":
+        terms = []
+    else:
+        terms = terms_str.replace(' ', '').strip('[] ').split(',')
         terms = list(map(int, terms))
     detections_type = parameters.type_of_detections
 
