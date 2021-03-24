@@ -9,7 +9,7 @@ from cytomine.models.software import JobDataCollection
 from shapely.geometry import box, Point, MultiPoint
 
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 
 def _generate_rectangles(detections: dict) -> list: 
@@ -54,20 +54,6 @@ def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> No
 
 def _load_multi_class_points(job: Job, image_id: str, terms: list, detections: dict) -> None:
 
-    progress = 10
-    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type two-class-points to image {image_id} with terms {terms[0]}")
-
-    annotations = AnnotationCollection()
-    delta = 85 / len(detections.values())
-    
-    for idx, points in enumerate(detections.values()):
-
-        multipoint = _generate_multipoints(points)
-        annotations.append(Annotation(location=multipoint.wkt, id_image=image_id, id_terms=[terms[idx]]))
-        progress += delta
-        job.update(progress=int(progress), status=Job.RUNNING)
-    
-    annotations.save()
     progress = 100
     job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
 
