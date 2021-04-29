@@ -6,10 +6,10 @@ import cytomine
 
 from cytomine.models import AnnotationCollection, Annotation, Job, JobData, AnnotationTerm
 from cytomine.models.software import JobDataCollection
-from shapely.geometry import box, Point, MultiPoint
+from shapely.geometry import box, Point, MultiPoint, Polygon
 
 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 
 
 def _generate_rectangles(detections: dict) -> list: 
@@ -30,6 +30,19 @@ def _generate_multipoints(detections: list) -> MultiPoint:
         points.append((detection['x'], detection['y']))
 
     return MultiPoint(points=points)
+
+
+def _generate_polygons(detections: dict) -> list:
+    polygons = []
+
+    for detection in detections['polygons']:
+        polygon_points = []
+        for point in detection:
+            polygon_points.append((int(point['x']), int(point['y'])))
+        
+        polygons.append(Polygon(polygon_points))
+
+    return polygons
 
 
 def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> None:
@@ -56,6 +69,25 @@ def _load_multi_class_points(job: Job) -> None:
 
     progress = 100
     job.update(progress=progress, status=Job.TERMINATED, statusComment="Job finished")
+
+
+def _load_polygons(job: Job, image_id: str, term: int, detections: dict) -> None:
+
+    progress = 10
+    job.update(progress=progress, status=Job.RUNNING, statusComment=f"Uploading detections of type polygons to image {image_id} with terms {term}")
+
+    polygons = _generate_polygons(detections)
+
+    delta = 85 / len(polygons)
+    annotations = AnnotationCollection()
+    for polygon in polygons:
+        annotations.append(Annotation(location=polygon.wkt, id_image=image_id, id_terms=[term]))
+        progress += delta
+        job.update(progress=int(progress), status=Job.RUNNING)
+
+    annotations.save()
+    progress = 100
+    job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
 
 
 def run(cyto_job, parameters):
@@ -90,6 +122,8 @@ def run(cyto_job, parameters):
         _load_rectangles(job, image, terms[0], detections)
     elif detections_type == 'multi-class-points':
         _load_multi_class_points(job)
+    elif detections_type == 'polygons':
+        _load_polygons(job, image, terms[0], detections)
 
 
 if __name__ == "__main__":
