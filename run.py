@@ -40,7 +40,8 @@ def _generate_polygons(detections: dict) -> list:
         for point in detection:
             polygon_points.append((int(point['x']), int(point['y'])))
         
-        polygons.append(Polygon(polygon_points))
+        if len(polygon_points) > 2: #Si es al menos un triángulo  
+            polygons.append(Polygon(polygon_points))
 
     return polygons
 
