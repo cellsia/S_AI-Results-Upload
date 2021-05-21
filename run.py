@@ -9,7 +9,7 @@ from cytomine.models.software import JobDataCollection
 from shapely.geometry import box, Point, MultiPoint, Polygon
 
 
-__version__ = "1.1.6"
+__version__ = "1.1.7"
 
 
 def _generate_rectangles(detections: dict) -> list: 
