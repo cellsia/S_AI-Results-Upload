@@ -6,7 +6,7 @@ import cytomine
 
 from cytomine.models import AnnotationCollection, Annotation, Job, JobData, AnnotationTerm
 from cytomine.models.software import JobDataCollection
-from shapely.geometry import box, Point, MultiPoint, Polygon
+from shapely.geometry import box, Point, MultiPoint, Polygon, MultiPolygon
 
 
 __version__ = "1.1.7"
@@ -32,18 +32,26 @@ def _generate_multipoints(detections: list) -> MultiPoint:
     return MultiPoint(points=points)
 
 
-def _generate_polygons(detections: dict) -> list:
+def _generate_polygons(detections: dict) -> MultiPolygon:
     polygons = []
 
     for detection in detections['polygons']:
         polygon_points = []
         for point in detection:
             polygon_points.append((int(point['x']), int(point['y'])))
-        
-        if len(polygon_points) > 2: #Si es al menos un triángulo  
-            polygons.append(Polygon(polygon_points))
 
-    return polygons
+        if len(polygon_points) > 2: #Si es al menos un triángulo....
+            new_polygon = Polygon(polygon_points)
+            if new_polygon.is_valid:
+                intersects = False
+                for polygon in polygons:
+                    if new_polygon.intersects(polygon):
+                        intersects = True
+                        break
+                if not intersects:  #y si no interseca con los polígonos ya agregados
+                    polygons.append(new_polygon)
+
+    return MultiPolygon(polygons=polygons)
 
 
 def _load_rectangles(job: Job, image_id: str, term: int, detections: dict) -> None:
@@ -79,14 +87,11 @@ def _load_polygons(job: Job, image_id: str, term: int, detections: dict) -> None
 
     polygons = _generate_polygons(detections)
 
-    delta = 85 / len(polygons)
-    annotations = AnnotationCollection()
-    for polygon in polygons:
-        annotations.append(Annotation(location=polygon.wkt, id_image=image_id, id_terms=[term]))
-        progress += delta
-        job.update(progress=int(progress), status=Job.RUNNING)
+    annotation = Annotation(location=polygons.wkt, id_image=image_id, id_terms=[term]).save()
+    
+    progress = 85
+    job.update(progress=int(progress), status=Job.RUNNING)
 
-    annotations.save()
     progress = 100
     job.update(progress=progress, status=Job.TERMINATED, statusComment="All detections have been uploaded")
 
