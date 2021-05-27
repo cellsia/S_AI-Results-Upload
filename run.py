@@ -9,7 +9,7 @@ from cytomine.models.software import JobDataCollection
 from shapely.geometry import box, Point, MultiPoint, Polygon, MultiPolygon
 
 
-__version__ = "1.1.7"
+__version__ = "1.1.8"
 
 
 def _generate_rectangles(detections: dict) -> list: 
@@ -88,7 +88,7 @@ def _load_polygons(job: Job, image_id: str, term: int, detections: dict) -> None
     polygons = _generate_polygons(detections)
 
     annotation = Annotation(location=polygons.wkt, id_image=image_id, id_terms=[term]).save()
-    
+
     progress = 85
     job.update(progress=int(progress), status=Job.RUNNING)
 
